@@ -53,59 +53,56 @@ def generate_hashtags(topic):
             "#CreatorTips", "#OnlineIncome"]
 
 # ---------------- THUMBNAIL GENERATOR ----------------
-def generate_thumbnail(text):
-    img = Image.new("RGB", (1280, 720), color=(20, 20, 30))
+def generate_trading_thumbnail(text):
+    from PIL import Image, ImageDraw, ImageFont
+    import random
+
+    width, height = 1280, 720
+    img = Image.new("RGB", (width, height), "#0f172a")
     draw = ImageDraw.Draw(img)
 
-    # Big text
-    draw.text((200, 300), text[:20], fill="yellow")
+    # Background gradient
+    for i in range(height):
+        color = (15, 23, 42 + i // 8)
+        draw.line([(0, i), (width, i)], fill=color)
+
+    # Draw fake trading candles
+    for i in range(30):
+        x = random.randint(50, width-50)
+        candle_height = random.randint(100, 400)
+        color = random.choice(["#00ff88", "#ff2e63"])
+        draw.rectangle([x, height-100-candle_height, x+20, height-100], fill=color)
+
+    # Big Font
+    try:
+        font = ImageFont.truetype("arial.ttf", 140)
+    except:
+        font = ImageFont.load_default()
+
+    text = text.upper()
+
+    # Center Text
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+
+    x = (width - text_width) / 2
+    y = height / 4
+
+    # Shadow
+    draw.text((x+6, y+6), text, font=font, fill="black")
+
+    # Main text
+    draw.text((x, y), text, font=font, fill="#FFD700")
+
+    # Up Arrow
+    draw.polygon(
+        [(width-250, height-250),
+         (width-150, height-450),
+         (width-100, height-400),
+         (width-200, height-200)],
+        fill="#00ff00"
+    )
 
     return img
 
-# ---------------- BUTTON ----------------
-if st.button("🚀 Generate Content"):
-
-    if topic:
-
-        st.subheader("📈 Viral Titles")
-        titles = generate_titles(topic, tone)
-        for t in titles:
-            st.write("🔥", t)
-
-        st.subheader("💬 Thumbnail Hook Text")
-        hooks = [
-            "SHOCKING!",
-            "DON'T MISS",
-            "MUST WATCH",
-            "SECRET REVEALED",
-            "BIG UPDATE"
-        ]
-        for h in hooks[:3]:
-            st.write("👉", h)
-
-        st.subheader("📝 Description")
-        st.write(generate_description(topic, audience))
-
-        st.subheader("🏷 Hashtags")
-        hashtags = generate_hashtags(topic)
-        st.write(" ".join(hashtags))
-
-        # Thumbnail
-        st.subheader("🎨 Thumbnail Preview")
-        thumb = generate_thumbnail(topic.upper())
-        st.image(thumb)
-
-        # Download button
-        buf = io.BytesIO()
-        thumb.save(buf, format="PNG")
-        byte_im = buf.getvalue()
-
-        st.download_button(
-            label="⬇️ Download Thumbnail",
-            data=byte_im,
-            file_name=f"{topic}_thumbnail.png",
-            mime="image/png"
-        )
-
-    else:
-        st.warning("Please enter topic.")
