@@ -3,15 +3,15 @@ from PIL import Image, ImageDraw, ImageFont
 import random
 import io
 
-# ---------------- PAGE CONFIG ----------------
-st.set_page_config(page_title="AI Trading Poster PRO", page_icon="📈", layout="centered")
+# ---------------- PAGE ----------------
+st.set_page_config(page_title="Trading Poster PRO", page_icon="📈", layout="centered")
+st.title("🔥 Trading Poster + Content Generator PRO")
 
-st.title("📈 Trading Chart Style Poster Generator")
+topic = st.text_input("📌 Enter Topic (Example: ADX EA Strategy)")
+platform = st.selectbox("📱 Platform", ["Instagram (1:1)", "YouTube (16:9)", "LinkedIn (4:5)"])
+tone = st.selectbox("🔥 Tone", ["Professional", "Bold", "Aggressive"])
 
-topic = st.text_input("Enter Topic (Example: ADX EA Strategy)")
-platform = st.selectbox("Platform", ["Instagram (1:1)", "YouTube (16:9)", "LinkedIn (4:5)"])
-
-if st.button("Generate Trading Poster"):
+if st.button("🚀 Generate Poster"):
 
     if topic:
 
@@ -23,31 +23,39 @@ if st.button("Generate Trading Poster"):
         else:
             width, height = 1080, 1350
 
-        # -------- DARK BACKGROUND --------
-        image = Image.new("RGB", (width, height), (8, 12, 25))
+        # -------- GRADIENT BACKGROUND --------
+        image = Image.new("RGB", (width, height))
         draw = ImageDraw.Draw(image)
 
-        # -------- DRAW GRID --------
-        for x in range(0, width, 100):
-            draw.line((x, 0, x, height), fill=(25, 35, 60), width=1)
+        for y in range(height):
+            r = 10
+            g = int(20 + (y / height) * 40)
+            b = int(40 + (y / height) * 80)
+            draw.line([(0, y), (width, y)], fill=(r, g, b))
 
-        for y in range(0, height, 100):
-            draw.line((0, y, width, y), fill=(25, 35, 60), width=1)
+        # -------- GRID --------
+        for x in range(0, width, 120):
+            draw.line((x, 0, x, height), fill=(30, 50, 80))
+        for y in range(0, height, 120):
+            draw.line((0, y, width, y), fill=(30, 50, 80))
 
-        # -------- DRAW FAKE CANDLE CHART --------
-        candle_width = 20
+        # -------- CANDLE CHART --------
+        candle_width = 18
         x_pos = 100
-        base_line = height - 200
+        base_line = height - 250
 
-        for i in range(40):
+        for i in range(35):
 
-            open_price = random.randint(-150, 150)
-            close_price = random.randint(-150, 150)
+            open_p = random.randint(-120, 120)
+            close_p = random.randint(-120, 120)
 
-            high = max(open_price, close_price) + random.randint(20, 60)
-            low = min(open_price, close_price) - random.randint(20, 60)
+            high = max(open_p, close_p) + random.randint(20, 50)
+            low = min(open_p, close_p) - random.randint(20, 50)
 
-            color = (0, 255, 120) if close_price > open_price else (255, 60, 60)
+            color = (0, 255, 140) if close_p > open_p else (255, 70, 70)
+
+            top = base_line - max(open_p, close_p)
+            bottom = base_line - min(open_p, close_p)
 
             # Wick
             draw.line(
@@ -56,43 +64,37 @@ if st.button("Generate Trading Poster"):
                 width=2
             )
 
-            # Body
+            # Body (fixed coordinates to avoid error)
             draw.rectangle(
-                (
-                    x_pos - candle_width//2,
-                    base_line - open_price,
-                    x_pos + candle_width//2,
-                    base_line - close_price
-                ),
+                [x_pos - candle_width//2, top,
+                 x_pos + candle_width//2, bottom],
                 fill=color
             )
 
-            x_pos += 25
+            x_pos += 28
 
-        # -------- FONTS --------
+        # -------- TEXT --------
         try:
-            font_big = ImageFont.truetype("arial.ttf", int(width/10))
-            font_small = ImageFont.truetype("arial.ttf", int(width/20))
+            font_big = ImageFont.truetype("arial.ttf", int(width/9))
+            font_small = ImageFont.truetype("arial.ttf", int(width/22))
         except:
             font_big = ImageFont.load_default()
             font_small = ImageFont.load_default()
 
-        hook = "PROFIT MODE ON"
+        hook = "PROFIT MODE"
 
-        # -------- CENTER TEXT --------
         bbox = draw.textbbox((0, 0), hook, font=font_big)
         text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
 
         draw.text(
-            ((width - text_width)/2, height/6),
+            ((width - text_width)/2, height/8),
             hook,
             font=font_big,
-            fill=(0, 255, 120)
+            fill=(0, 255, 150)
         )
 
         draw.text(
-            (width/2, height/3),
+            (width/2, height/4),
             topic,
             font=font_small,
             fill=(255, 255, 255),
@@ -106,26 +108,29 @@ if st.button("Generate Trading Poster"):
         img_bytes = io.BytesIO()
         image.save(img_bytes, format="PNG")
         st.download_button(
-            label="📥 Download Trading Poster",
-            data=img_bytes.getvalue(),
+            "📥 Download Poster",
+            img_bytes.getvalue(),
             file_name="trading_poster.png",
             mime="image/png"
         )
 
         # -------- CONTENT --------
-        st.subheader("Post Content")
-        st.write(f"""
-📈 {hook}
+        st.subheader("📝 Post Description")
 
-Master {topic} and take your trading to the next level.
+        description = f"""
+🔥 {hook} Activated!
 
-Consistency + Strategy = Profit 💰
+Learn {topic} and improve your trading performance.
 
-Are you ready?
-""")
+Consistency + Risk Management + Strategy = Long Term Profit 💰
 
-        st.subheader("Hashtags")
-        st.write(f"#Trading #Forex #Crypto #StockMarket #{topic.replace(' ', '')}")
+Start your journey today.
+"""
+
+        st.write(description)
+
+        st.subheader("📢 Hashtags")
+        st.write(f"#Trading #Forex #StockMarket #Crypto #{topic.replace(' ','')} #TraderLife #Investment")
 
     else:
         st.warning("Please enter a topic.")
