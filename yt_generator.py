@@ -94,21 +94,26 @@ if st.button("🚀 Generate Poster"):
         font_small = ImageFont.load_default()
 
     # Center Text
-    text_width, text_height = draw.textsize(hook, font=font_big)
-    draw.text(
-        ((width - text_width) / 2, height / 3),
-        hook,
-        font=font_big,
-        fill=(255, 75, 75)
-    )
+    # Get text size (NEW Pillow Method)
+bbox = draw.textbbox((0, 0), hook, font=font_big)
+text_width = bbox[2] - bbox[0]
+text_height = bbox[3] - bbox[1]
 
-    draw.text(
-        (width / 2, height / 2),
-        topic,
-        font=font_small,
-        fill=(255, 255, 255),
-        anchor="mm"
-    )
+draw.text(
+    ((width - text_width) / 2, height / 3),
+    hook,
+    font=font_big,
+    fill=(255, 75, 75)
+)
+
+draw.text(
+    (width / 2, height / 2),
+    topic,
+    font=font_small,
+    fill=(255, 255, 255),
+    anchor="mm"
+)
+
 
     # --------- DISPLAY CONTENT ---------
     st.markdown('<div class="result-box">', unsafe_allow_html=True)
