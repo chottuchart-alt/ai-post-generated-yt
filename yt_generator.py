@@ -1,109 +1,120 @@
 import streamlit as st
-import random
-from PIL import Image, ImageDraw, ImageFont
+from openai import OpenAI
+import os
 import io
 
 # ---------------- PAGE CONFIG ----------------
-st.set_page_config(page_title="AI YouTube Growth Tool FREE", page_icon="🎬", layout="centered")
+st.set_page_config(page_title="AI Social Media Poster Generator", page_icon="🔥", layout="centered")
 
-st.title("🎬 AI YouTube Title & Thumbnail Generator (FREE)")
-st.write("Generate viral YouTube content instantly 🚀")
+# ---------------- STYLE ----------------
+st.markdown("""
+<style>
+.big-title {
+    font-size: 36px;
+    font-weight: bold;
+    text-align: center;
+    color: #ff4b4b;
+}
+.result-box {
+    background-color: #111827;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #ff4b4b;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# ---------------- INPUT ----------------
-topic = st.text_input("📌 Enter Video Topic")
-audience = st.selectbox("🎯 Target Audience", ["Students", "Developers", "Beginners", "General Public"])
-tone = st.selectbox("🔥 Tone", ["Viral", "Educational", "Shocking", "Funny", "Professional"])
+st.markdown('<p class="big-title">🔥 AI Poster + Content Generator PRO</p>', unsafe_allow_html=True)
+st.write("Create Attractive Posters + Post Content + Hashtags Instantly 🚀")
 
-# ---------------- TITLE GENERATOR ----------------
-def generate_titles(topic, tone):
-    templates = [
-        f"{topic} Explained in 5 Minutes!",
-        f"You Won't Believe This About {topic}",
-        f"The Truth About {topic}",
-        f"Master {topic} Fast!",
-        f"Stop Doing This in {topic}",
-        f"{topic} Secrets Nobody Tells You",
-        f"How I Learned {topic} Quickly",
-        f"Big Mistakes in {topic}",
-        f"{topic} Made Simple",
-        f"Ultimate Guide to {topic}"
-    ]
-    random.shuffle(templates)
-    return templates[:10]
+# ---------------- OPENAI ----------------
+OPENAI_KEY = os.getenv("OPENAI_KEY")
 
-# ---------------- DESCRIPTION ----------------
-def generate_description(topic, audience):
-    return f"""
-This video explains {topic} in a simple and practical way specially for {audience}.
+if not OPENAI_KEY:
+    st.error("Add OPENAI_KEY in Streamlit secrets")
+    st.stop()
 
-You will learn:
-- Core concepts
-- Common mistakes
-- Practical applications
-- Smart tips for faster growth
+client = OpenAI(api_key=OPENAI_KEY)
 
-Watch till the end for maximum value 🚀
-"""
+# ---------------- INPUTS ----------------
+topic = st.text_input("📌 Enter Topic (Example: Trading Strategy, AI Business, Motivation)")
 
-# ---------------- HASHTAGS ----------------
-def generate_hashtags(topic):
-    base = topic.replace(" ", "")
-    return [f"#{base}", "#YouTubeGrowth", "#ViralVideo", "#ContentCreator",
-            "#Trending", "#LearnFast", "#Success", "#DigitalGrowth",
-            "#CreatorTips", "#OnlineIncome"]
+platform = st.selectbox("📱 Platform",
+                        ["Instagram Post (1:1)",
+                         "Instagram Story (9:16)",
+                         "LinkedIn Post (1:1)",
+                         "YouTube Thumbnail (16:9)"])
 
-# ---------------- THUMBNAIL GENERATOR ----------------
-def generate_trading_thumbnail(text):
-    from PIL import Image, ImageDraw, ImageFont
-    import random
+tone = st.selectbox("🔥 Tone",
+                    ["Professional", "Viral", "Motivational", "Luxury", "Bold"])
 
-    width, height = 1280, 720
-    img = Image.new("RGB", (width, height), "#0f172a")
-    draw = ImageDraw.Draw(img)
+# ---------------- SIZE LOGIC ----------------
+size_map = {
+    "Instagram Post (1:1)": "1024x1024",
+    "Instagram Story (9:16)": "1024x1792",
+    "LinkedIn Post (1:1)": "1024x1024",
+    "YouTube Thumbnail (16:9)": "1792x1024"
+}
 
-    # Background gradient
-    for i in range(height):
-        color = (15, 23, 42 + i // 8)
-        draw.line([(0, i), (width, i)], fill=color)
+# ---------------- GENERATE ----------------
+if st.button("🚀 Generate Poster & Content"):
 
-    # Draw fake trading candles
-    for i in range(30):
-        x = random.randint(50, width-50)
-        candle_height = random.randint(100, 400)
-        color = random.choice(["#00ff88", "#ff2e63"])
-        draw.rectangle([x, height-100-candle_height, x+20, height-100], fill=color)
+    if topic:
 
-    # Big Font
-    try:
-        font = ImageFont.truetype("arial.ttf", 140)
-    except:
-        font = ImageFont.load_default()
+        with st.spinner("Generating AI content..."):
 
-    text = text.upper()
+            prompt = f"""
+            Create attractive social media content.
 
-    # Center Text
-    bbox = draw.textbbox((0, 0), text, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
+            Topic: {topic}
+            Tone: {tone}
 
-    x = (width - text_width) / 2
-    y = height / 4
+            Provide clearly separated sections:
 
-    # Shadow
-    draw.text((x+6, y+6), text, font=font, fill="black")
+            1) Powerful Hook Line
+            2) Short Engaging Post Content (100 words)
+            3) 15 Trending Hashtags
+            """
 
-    # Main text
-    draw.text((x, y), text, font=font, fill="#FFD700")
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}]
+            )
 
-    # Up Arrow
-    draw.polygon(
-        [(width-250, height-250),
-         (width-150, height-450),
-         (width-100, height-400),
-         (width-200, height-200)],
-        fill="#00ff00"
-    )
+            text_result = response.choices[0].message.content
 
-    return img
+        st.markdown('<div class="result-box">', unsafe_allow_html=True)
+        st.subheader("📢 Generated Post Content")
+        st.write(text_result)
+        st.markdown('</div>', unsafe_allow_html=True)
 
+        # ---------------- IMAGE GENERATION ----------------
+        st.subheader("🎨 AI Poster Image")
 
+        with st.spinner("Creating Attractive Poster..."):
+
+            image = client.images.generate(
+                model="gpt-image-1",
+                prompt=f"""
+                Create a high quality {platform} poster.
+
+                Topic: {topic}
+                Style: {tone}
+                Bold typography, dramatic lighting,
+                modern social media style,
+                eye-catching,
+                high contrast,
+                professional design.
+                """,
+                size=size_map[platform]
+            )
+
+            image_url = image.data[0].url
+            st.image(image_url, use_column_width=True)
+
+            # DOWNLOAD BUTTON
+            st.markdown("### ⬇ Download Poster")
+            st.markdown(f"[Click Here To Download]({image_url})")
+
+    else:
+        st.warning("Enter topic first.")
