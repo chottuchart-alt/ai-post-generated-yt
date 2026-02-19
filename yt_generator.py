@@ -106,3 +106,4 @@ def generate_trading_thumbnail(text):
 
     return img
 
+
