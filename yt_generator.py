@@ -3,75 +3,150 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import numpy as np
 import io
 import random
+import datetime
 
-st.set_page_config(page_title="🔥 Poster + Content Generator PRO", layout="centered")
+st.set_page_config(page_title="🔥 Ultimate Poster Generator PRO MAX", layout="centered")
 
-st.title("🔥 AI Poster + Content Generator PRO (FREE)")
+st.title("🔥 Ultimate Poster + Content Generator PRO MAX")
 
-topic = st.text_input("📌 Enter Topic (Example: Trading Strategy, Motivation, Crypto, Baby Care)")
+topic = st.text_input("📌 Enter Topic")
 platform = st.selectbox("📱 Platform Size", ["YouTube (1280x720)", "Instagram (1080x1080)"])
-tone = st.selectbox("🔥 Tone", ["Professional", "Aggressive", "Motivational", "Luxury", "Educational"])
+template = st.selectbox("🎨 Choose Template", [
+    "Luxury Gold",
+    "Crypto Coins",
+    "Forex Candles",
+    "Baby Soft",
+    "Auto Daily Generator"
+])
 
-if st.button("🚀 Generate Complete Post"):
+# -------- SIZE --------
+if "YouTube" in platform:
+    width, height = 1280, 720
+else:
+    width, height = 1080, 1080
+
+# -------- AUTO DAILY --------
+if template == "Auto Daily Generator":
+    today = datetime.datetime.now().strftime("%A")
+    daily_topics = [
+        "Motivation Boost",
+        "Crypto Profits",
+        "Trading Strategy",
+        "Business Growth",
+        "Baby Care Tips"
+    ]
+    topic = random.choice(daily_topics) + " - " + today
+
+if st.button("🚀 Generate PRO Poster"):
 
     if not topic:
         st.warning("Enter topic")
         st.stop()
 
-    # -------- SIZE --------
-    if "YouTube" in platform:
-        width, height = 1280, 720
-    else:
-        width, height = 1080, 1080
+    img = Image.new("RGB", (width, height))
+    draw = ImageDraw.Draw(img)
 
-    # -------- BACKGROUND --------
-    bg = Image.new("RGB", (width, height), "#0f2027")
-    draw = ImageDraw.Draw(bg)
+    # =====================================================
+    # TEMPLATE: LUXURY GOLD
+    # =====================================================
+    if template == "Luxury Gold":
 
-    for i in range(height):
-        r = int(20 + (180 * (i/height)))
-        g = int(30 + (140 * (i/height)))
-        b = int(40 + (80 * (i/height)))
-        draw.line([(0, i), (width, i)], fill=(r, g, b))
+        for i in range(height):
+            r = int(10 + (120 * (i/height)))
+            g = int(20 + (80 * (i/height)))
+            b = int(5)
+            draw.line([(0, i), (width, i)], fill=(r, g, b))
 
-    # Gold particles
-    for _ in range(400):
-        x = np.random.randint(0, width)
-        y = np.random.randint(0, height)
-        draw.ellipse((x, y, x+3, y+3), fill=(255,215,0))
+        for _ in range(500):
+            x = np.random.randint(0, width)
+            y = np.random.randint(0, height)
+            draw.ellipse((x, y, x+3, y+3), fill=(255,215,0))
 
-    bg = bg.filter(ImageFilter.GaussianBlur(0.4))
-    draw = ImageDraw.Draw(bg)
+        text_color = (255,215,0)
 
-    # -------- FONT --------
+    # =====================================================
+    # TEMPLATE: CRYPTO
+    # =====================================================
+    elif template == "Crypto Coins":
+
+        img.paste((10, 20, 40), [0,0,width,height])
+
+        for _ in range(10):
+            x = random.randint(100, width-200)
+            y = random.randint(100, height-200)
+            draw.ellipse((x, y, x+120, y+120), fill=(255, 200, 0), outline="black", width=5)
+            draw.text((x+40, y+35), "₿", fill="black")
+
+        text_color = (0,255,180)
+
+    # =====================================================
+    # TEMPLATE: FOREX
+    # =====================================================
+    elif template == "Forex Candles":
+
+        img.paste((5, 25, 50), [0,0,width,height])
+
+        candle_width = 20
+        gap = 15
+        x = 50
+
+        for _ in range(30):
+            open_price = random.randint(200, height-200)
+            close_price = random.randint(200, height-200)
+            high = min(open_price, close_price) - random.randint(20,60)
+            low = max(open_price, close_price) + random.randint(20,60)
+
+            color = (0,255,120) if close_price < open_price else (255,60,60)
+
+            draw.line((x+10, high, x+10, low), fill=color, width=3)
+            draw.rectangle((x, open_price, x+candle_width, close_price), fill=color)
+
+            x += candle_width + gap
+
+        text_color = (0,255,180)
+
+    # =====================================================
+    # TEMPLATE: BABY
+    # =====================================================
+    elif template == "Baby Soft":
+
+        for i in range(height):
+            r = 255
+            g = int(200 + (50 * (i/height)))
+            b = int(220 + (30 * (i/height)))
+            draw.line([(0, i), (width, i)], fill=(r, g, b))
+
+        draw.ellipse((width/4, height/3, width/1.5, height/1.2), fill=(255,240,250))
+
+        text_color = (255,105,180)
+
+    # =====================================================
+    # TEXT STYLING (3D GOLD EFFECT)
+    # =====================================================
     try:
-        font_big = ImageFont.truetype("DejaVuSans-Bold.ttf", int(width/9))
-        font_small = ImageFont.truetype("DejaVuSans-Bold.ttf", int(width/28))
+        font_big = ImageFont.truetype("DejaVuSans-Bold.ttf", int(width/10))
     except:
         font_big = ImageFont.load_default()
-        font_small = ImageFont.load_default()
 
     text = topic.upper()
-
     bbox = draw.textbbox((0, 0), text, font=font_big)
     text_width = bbox[2] - bbox[0]
     x = (width - text_width) / 2
     y = height / 3
 
-    draw.text((x+6, y+6), text, font=font_big, fill=(0,0,0))
-    draw.text((x, y), text, font=font_big, fill=(255,215,0), stroke_width=4, stroke_fill=(0,0,0))
+    # 3D shadow layers
+    for offset in range(8,0,-1):
+        draw.text((x+offset, y+offset), text, font=font_big, fill=(0,0,0))
 
-    draw.text((width/2, height*0.65),
-              "🔥 Powerful Insights Inside 🔥",
-              font=font_small,
-              fill="white",
-              anchor="mm")
+    draw.text((x, y), text, font=font_big, fill=text_color)
 
-    # -------- SHOW IMAGE --------
-    st.image(bg, use_column_width=True)
+    # =====================================================
+    # SHOW IMAGE
+    # =====================================================
+    st.image(img, use_column_width=True)
 
     img_bytes = io.BytesIO()
-    bg.save(img_bytes, format="PNG")
+    img.save(img_bytes, format="PNG")
 
     st.download_button("⬇ Download Poster",
                        img_bytes.getvalue(),
@@ -79,78 +154,36 @@ if st.button("🚀 Generate Complete Post"):
                        mime="image/png")
 
     # =====================================================
-    # ================= CONTENT GENERATOR =================
+    # AUTO CONTENT GENERATOR
     # =====================================================
 
-    hooks = [
-        f"🚀 Ready to master {topic}?",
-        f"🔥 The ultimate guide to {topic}!",
-        f"💰 Unlock the secrets of {topic} today!",
-        f"⚡ Stop missing out on {topic}!"
-    ]
-
-    captions = [
-        f"{topic} can completely change your results if done correctly.",
-        f"Most people fail at {topic} because they don't know the fundamentals.",
-        f"If you want real success in {topic}, consistency is key.",
-        f"Understanding {topic} gives you a competitive edge."
-    ]
-
+    caption = f"🔥 Master {topic} today and level up your game!"
     description = f"""
-If you're serious about {topic}, this is for you.
+If you want better results in {topic},
+you must understand the fundamentals and apply them consistently.
 
-In this post, we break down practical strategies, proven concepts,
-and real-world insights that help you get better results.
-
-Whether you're a beginner or experienced, mastering {topic}
-can unlock new opportunities and growth.
-
-Start applying these principles today and see the difference.
+This post gives powerful insight to help you grow faster.
+Start today. Stay consistent. Win big.
 """
-
-    hashtag_base = topic.lower().replace(" ", "")
     hashtags = f"""
-#{hashtag_base}
-#{hashtag_base}tips
-#{hashtag_base}strategy
+#{topic.lower().replace(" ","")}
 #success
 #growth
-#business
-#entrepreneur
+#money
 #motivation
-#digitalmarketing
-#learning
-#mindset
-#viralcontent
+#business
+#crypto
+#trading
+#viral
+#reels
 #contentcreator
-#socialmedia
-#trending
 """
 
-    # -------- DISPLAY TEXT CONTENT --------
-    st.subheader("📢 Post Caption")
-    st.write(random.choice(hooks))
-    st.write(random.choice(captions))
+    st.subheader("📢 Caption")
+    st.write(caption)
 
     st.subheader("📝 Description")
     st.write(description)
 
     st.subheader("🏷 Hashtags")
     st.code(hashtags)
-
-    # Download text file
-    full_text = f"""
-CAPTION:
-{random.choice(hooks)}
-{random.choice(captions)}
-
-DESCRIPTION:
-{description}
-
-HASHTAGS:
-{hashtags}
-"""
-
-    st.download_button("⬇ Download Content (TXT)",
-                       full_text,
-                       file_name="post_content.txt")
