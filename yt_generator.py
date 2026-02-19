@@ -31,7 +31,8 @@ st.markdown('<p class="big-title">🎬 AI YouTube Title & Thumbnail Generator PR
 st.write("Generate viral titles, hooks, description & AI thumbnails instantly 🚀")
 
 # ---------------- OPENAI SETUP ----------------
-OPENAI_KEY = os.getenv("OPENAI_KEY")
+OPENAI_KEY = st.secrets["OPENAI_KEY"]
+client = OpenAI(api_key=OPENAI_KEY)
 
 if not OPENAI_KEY:
     st.error("⚠️ OPENAI_KEY not found. Add it in Streamlit Secrets.")
