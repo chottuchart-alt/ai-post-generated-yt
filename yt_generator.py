@@ -1,139 +1,179 @@
 import streamlit as st
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import inch
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.pdfmetrics import stringWidth
-from reportlab.pdfgen import canvas
-from reportlab.platypus import Frame
-from PIL import Image as PILImage
-import tempfile
-import os
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
+import io
+import random
+import math
 
-st.set_page_config(page_title="Resume Builder PRO", page_icon="📄")
+st.set_page_config(page_title="🔥 PRO MAX Thumbnail Generator", layout="centered")
 
-st.title("📄 Professional Resume Builder PRO")
+st.title("🔥 YouTube Profit Thumbnail PRO MAX")
 
-# ---------------- THEME ----------------
-theme = st.selectbox("Choose Resume Theme", 
-                     ["Modern Blue", "Elegant Gray", "Minimal Black"])
+topic = st.text_input("📌 Enter EA Name", value="AUTOBUY EA")
+profit = st.text_input("💰 Enter Profit Amount", value="+$57,489")
+date_text = st.text_input("📅 Enter Date Range", value="JAN - FEB 2026")
 
-if theme == "Modern Blue":
-    primary_color = colors.HexColor("#1D4ED8")
-elif theme == "Elegant Gray":
-    primary_color = colors.HexColor("#374151")
-else:
-    primary_color = colors.black
+width, height = 1280, 720
+safe_margin = 120
+max_width = width - (safe_margin * 2)
 
-# ---------------- INPUT ----------------
-name = st.text_input("Full Name")
-role = st.text_input("Professional Title")
-location = st.text_input("Location")
-phone = st.text_input("Phone")
-email = st.text_input("Email")
 
-summary = st.text_area("Professional Summary")
-skills = st.text_input("Skills (comma separated)")
-experience = st.text_area("Experience")
-education = st.text_area("Education")
-achievements = st.text_area("Achievements")
+# -------------------------------
+# MULTI LINE TEXT
+# -------------------------------
+def draw_multiline_center(draw, text, font, y_start):
+    words = text.split()
+    lines = []
+    line = ""
 
-photo = st.file_uploader("Upload Photo", type=["png","jpg","jpeg"])
+    for word in words:
+        test = line + word + " "
+        if draw.textlength(test, font=font) <= max_width:
+            line = test
+        else:
+            lines.append(line.strip())
+            line = word + " "
+    lines.append(line.strip())
 
-# ---------------- PDF FUNCTION ----------------
-def create_resume_pdf(path):
+    y = y_start
+    for line in lines:
+        w = draw.textlength(line, font=font)
+        x = (width - w) / 2
+        draw.text((x, y), line, font=font, fill="white")
+        y += font.size + 20
+    return y
 
-    c = canvas.Canvas(path, pagesize=A4)
-    width, height = A4
 
-    # Sidebar
-    c.setFillColor(primary_color)
-    c.rect(0, 0, 160, height, fill=1)
+# -------------------------------
+# GRADIENT TEXT
+# -------------------------------
+def draw_gradient_text(img, position, text, font, color1, color2):
+    txt = Image.new("RGBA", img.size, (255,255,255,0))
+    d = ImageDraw.Draw(txt)
 
-    # White background
-    c.setFillColor(colors.white)
-    c.rect(160, 0, width-160, height, fill=1)
+    x, y = position
+    w = d.textlength(text, font=font)
+    h = font.size
 
-    # Photo
-    if photo:
-        img = PILImage.open(photo)
-        img_path = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
-        img.save(img_path)
-        c.drawImage(img_path, 30, height-200, width=100, height=100, mask='auto')
+    for i in range(h):
+        ratio = i / h
+        r = int(color1[0] + (color2[0]-color1[0]) * ratio)
+        g = int(color1[1] + (color2[1]-color1[1]) * ratio)
+        b = int(color1[2] + (color2[2]-color1[2]) * ratio)
+        d.text((x, y+i), text, font=font, fill=(r,g,b,255))
 
-    # Name
-    c.setFillColor(colors.black)
-    c.setFont("Helvetica-Bold", 22)
-    c.drawString(180, height-60, name)
+    img.alpha_composite(txt)
 
-    c.setFont("Helvetica", 14)
-    c.drawString(180, height-85, role)
 
-    # Contact
-    c.setFont("Helvetica", 10)
-    c.drawString(180, height-105, location)
-    c.drawString(180, height-120, phone)
-    c.drawString(180, height-135, email)
+# -------------------------------
+# GLOW EFFECT
+# -------------------------------
+def draw_glow(draw, img, text, font, position):
+    glow_layer = Image.new("RGBA", img.size, (0,0,0,0))
+    glow_draw = ImageDraw.Draw(glow_layer)
+    glow_draw.text(position, text, font=font, fill="white")
+    glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(15))
+    img.alpha_composite(glow_layer)
 
-    y = height - 170
 
-    # Section Function
-    def draw_section(title, content):
-        nonlocal y
-        c.setFillColor(primary_color)
-        c.setFont("Helvetica-Bold", 13)
-        c.drawString(180, y, title)
-        y -= 15
+# -------------------------------
+# BACKGROUND + CHART
+# -------------------------------
+def generate_background():
+    img = Image.new("RGB", (width, height), (10,20,40))
+    draw = ImageDraw.Draw(img)
 
-        c.setFillColor(colors.black)
-        c.setFont("Helvetica", 11)
+    # Chart lines
+    for i in range(30):
+        x1 = random.randint(0,width)
+        y1 = random.randint(height//2,height)
+        x2 = x1 + random.randint(50,200)
+        y2 = y1 - random.randint(50,200)
+        draw.line((x1,y1,x2,y2), fill=(0,255,100), width=3)
 
-        text_obj = c.beginText(180, y)
-        text_obj.setLeading(14)
-        text_obj.textLines(content)
-        c.drawText(text_obj)
+    # Up arrow
+    draw.line((100,600,500,300), fill="red", width=12)
+    draw.polygon([(500,300),(470,330),(530,330)], fill="red")
 
-        y -= (14 * (len(content.split("\n")) + 1)) + 10
+    return img.convert("RGBA")
 
-    if summary:
-        draw_section("Professional Summary", summary)
 
-    if experience:
-        draw_section("Experience", experience)
+# -------------------------------
+# ROBOT DRAW
+# -------------------------------
+def draw_robot(draw):
+    draw.ellipse((100,150,300,350), fill=(200,200,220))
+    draw.rectangle((150,350,250,550), fill=(180,180,200))
+    draw.ellipse((170,200,230,260), fill="cyan")
+    draw.ellipse((240,200,300,260), fill="cyan")
 
-    if education:
-        draw_section("Education", education)
 
-    if achievements:
-        draw_section("Achievements", achievements)
+# -------------------------------
+# GENERATE BUTTON
+# -------------------------------
+if st.button("🚀 Generate PRO Thumbnail"):
 
-    # Skills in sidebar
-    if skills:
-        c.setFillColor(colors.white)
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(30, height-250, "Skills")
+    img = generate_background()
+    draw = ImageDraw.Draw(img)
 
-        y_skill = height-270
-        c.setFont("Helvetica", 10)
-        for skill in skills.split(","):
-            c.drawString(30, y_skill, f"- {skill.strip()}")
-            y_skill -= 15
+    try:
+        font_big = ImageFont.truetype("DejaVuSans-Bold.ttf", 120)
+        font_mid = ImageFont.truetype("DejaVuSans-Bold.ttf", 70)
+        font_profit = ImageFont.truetype("DejaVuSans-Bold.ttf", 110)
+        font_small = ImageFont.truetype("DejaVuSans.ttf", 35)
+    except:
+        font_big = ImageFont.load_default()
+        font_mid = ImageFont.load_default()
+        font_profit = ImageFont.load_default()
+        font_small = ImageFont.load_default()
 
-    c.save()
+    # ROBOT
+    draw_robot(draw)
 
-# ---------------- PREVIEW ----------------
-st.subheader("Preview (Theme Applied)")
-st.write("Theme:", theme)
-st.write("Name:", name)
-st.write("Role:", role)
+    # TITLE with glow + gradient
+    title_w = draw.textlength(topic, font=font_big)
+    title_x = (width-title_w)/2
+    draw_glow(draw, img, topic, font_big, (title_x,100))
+    draw_gradient_text(img, (title_x,100), topic, font_big, (255,200,0), (255,0,0))
 
-# ---------------- DOWNLOAD ----------------
-if st.button("📥 Generate Resume PDF"):
-    pdf_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    create_resume_pdf(pdf_file.name)
+    # DATE
+    date_w = draw.textlength(date_text, font=font_mid)
+    draw.text(((width-date_w)/2, 250), date_text, font=font_mid, fill="white")
 
-    with open(pdf_file.name, "rb") as f:
-        st.download_button("Download Resume", f, file_name="Professional_Resume.pdf")
+    # PROFIT TEXT
+    pr = "PROFIT RESULTS"
+    pr_w = draw.textlength(pr, font=font_mid)
+    draw.text(((width-pr_w)/2, 340), pr, font=font_mid, fill="lime")
+
+    # PROFIT BOX
+    profit_w = draw.textlength(profit, font=font_profit)
+
+    box_x1 = (width-profit_w)/2 - 60
+    box_y1 = 430
+    box_x2 = (width+profit_w)/2 + 60
+    box_y2 = 580
+
+    draw.rounded_rectangle(
+        [box_x1, box_y1, box_x2, box_y2],
+        radius=30,
+        fill=(0,0,0)
+    )
+
+    draw_glow(draw, img, profit, font_profit, ((width-profit_w)/2,450))
+    draw.text(((width-profit_w)/2,450), profit, font=font_profit, fill="lime")
+
+    # DISCLAIMER
+    disclaimer = "⚠ Past Results ≠ Future Profits"
+    disc_w = draw.textlength(disclaimer, font=font_small)
+    draw.text(((width-disc_w)/2,650), disclaimer, font=font_small, fill="white")
+
+    st.image(img, use_column_width=True)
+
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format="PNG")
+
+    st.download_button(
+        "⬇ Download Thumbnail",
+        img_bytes.getvalue(),
+        file_name="pro_thumbnail.png",
+        mime="image/png"
+    )
