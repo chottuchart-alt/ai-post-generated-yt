@@ -1,119 +1,139 @@
 import streamlit as st
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
-import random
-import io
-import datetime
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import inch
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Frame
+from PIL import Image as PILImage
+import tempfile
+import os
 
-st.set_page_config(page_title="🔥 AutoBuy EA Thumbnail Generator", layout="centered")
+st.set_page_config(page_title="Resume Builder PRO", page_icon="📄")
 
-st.title("🔥 YouTube Profit Thumbnail Generator")
+st.title("📄 Professional Resume Builder PRO")
 
-topic = st.text_input("📌 Enter EA Name", value="AUTOBUY EA")
-profit = st.text_input("💰 Enter Profit Amount", value="+$57,489")
-date_text = st.text_input("📅 Enter Date Range", value="JAN - FEB 2026")
+# ---------------- THEME ----------------
+theme = st.selectbox("Choose Resume Theme", 
+                     ["Modern Blue", "Elegant Gray", "Minimal Black"])
 
-width, height = 1280, 720
+if theme == "Modern Blue":
+    primary_color = colors.HexColor("#1D4ED8")
+elif theme == "Elegant Gray":
+    primary_color = colors.HexColor("#374151")
+else:
+    primary_color = colors.black
 
+# ---------------- INPUT ----------------
+name = st.text_input("Full Name")
+role = st.text_input("Professional Title")
+location = st.text_input("Location")
+phone = st.text_input("Phone")
+email = st.text_input("Email")
 
-# -------------------------------
-# BACKGROUND GENERATOR
-# -------------------------------
-def generate_background(width, height):
-    img = Image.new("RGB", (width, height))
-    draw = ImageDraw.Draw(img)
+summary = st.text_area("Professional Summary")
+skills = st.text_input("Skills (comma separated)")
+experience = st.text_area("Experience")
+education = st.text_area("Education")
+achievements = st.text_area("Achievements")
 
-    c1 = (10, 20, 40)
-    c2 = (0, 150, 90)
+photo = st.file_uploader("Upload Photo", type=["png","jpg","jpeg"])
 
-    for i in range(height):
-        r = int(c1[0] + (c2[0]-c1[0])*(i/height))
-        g = int(c1[1] + (c2[1]-c1[1])*(i/height))
-        b = int(c1[2] + (c2[2]-c1[2])*(i/height))
-        draw.line([(0, i), (width, i)], fill=(r,g,b))
+# ---------------- PDF FUNCTION ----------------
+def create_resume_pdf(path):
 
-    return img
+    c = canvas.Canvas(path, pagesize=A4)
+    width, height = A4
 
+    # Sidebar
+    c.setFillColor(primary_color)
+    c.rect(0, 0, 160, height, fill=1)
 
-# -------------------------------
-# GENERATE BUTTON
-# -------------------------------
-if st.button("🚀 Generate Thumbnail"):
+    # White background
+    c.setFillColor(colors.white)
+    c.rect(160, 0, width-160, height, fill=1)
 
-    img = generate_background(width, height)
-    draw = ImageDraw.Draw(img)
+    # Photo
+    if photo:
+        img = PILImage.open(photo)
+        img_path = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+        img.save(img_path)
+        c.drawImage(img_path, 30, height-200, width=100, height=100, mask='auto')
 
-    # Fonts
-    try:
-        font_big = ImageFont.truetype("DejaVuSans-Bold.ttf", 120)
-        font_mid = ImageFont.truetype("DejaVuSans-Bold.ttf", 70)
-        font_small = ImageFont.truetype("DejaVuSans.ttf", 40)
-    except:
-        font_big = ImageFont.load_default()
-        font_mid = ImageFont.load_default()
-        font_small = ImageFont.load_default()
+    # Name
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Bold", 22)
+    c.drawString(180, height-60, name)
 
-    # -------------------------------
-    # TITLE
-    # -------------------------------
-    title_w = draw.textlength(topic, font=font_big)
-    draw.text(((width-title_w)/2, 120), topic, font=font_big, fill="yellow")
+    c.setFont("Helvetica", 14)
+    c.drawString(180, height-85, role)
 
-    # DATE
-    date_w = draw.textlength(date_text, font=font_mid)
-    draw.text(((width-date_w)/2, 260), date_text, font=font_mid, fill="white")
+    # Contact
+    c.setFont("Helvetica", 10)
+    c.drawString(180, height-105, location)
+    c.drawString(180, height-120, phone)
+    c.drawString(180, height-135, email)
 
-    # PROFIT RESULTS TEXT
-    pr_text = "PROFIT RESULTS"
-    pr_w = draw.textlength(pr_text, font=font_mid)
-    draw.text(((width-pr_w)/2, 360), pr_text, font=font_mid, fill="lime")
+    y = height - 170
 
-    # PROFIT BOX
-    profit_w = draw.textlength(profit, font=font_big)
+    # Section Function
+    def draw_section(title, content):
+        nonlocal y
+        c.setFillColor(primary_color)
+        c.setFont("Helvetica-Bold", 13)
+        c.drawString(180, y, title)
+        y -= 15
 
-    box_x1 = (width-profit_w)/2 - 60
-    box_y1 = 470
-    box_x2 = (width+profit_w)/2 + 60
-    box_y2 = 600
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 11)
 
-    draw.rounded_rectangle(
-        [box_x1, box_y1, box_x2, box_y2],
-        radius=30,
-        fill=(0, 0, 0)
-    )
+        text_obj = c.beginText(180, y)
+        text_obj.setLeading(14)
+        text_obj.textLines(content)
+        c.drawText(text_obj)
 
-    draw.text(
-        ((width-profit_w)/2, 490),
-        profit,
-        font=font_big,
-        fill="lime"
-    )
+        y -= (14 * (len(content.split("\n")) + 1)) + 10
 
-    # DISCLAIMER
-    disclaimer = "⚠ Past Results ≠ Future Profits"
-    disc_w = draw.textlength(disclaimer, font=font_small)
+    if summary:
+        draw_section("Professional Summary", summary)
 
-    draw.text(
-        ((width-disc_w)/2, 650),
-        disclaimer,
-        font=font_small,
-        fill="white"
-    )
+    if experience:
+        draw_section("Experience", experience)
 
-    # BORDER
-    draw.rectangle(
-        [(20,20),(width-20,height-20)],
-        outline="white",
-        width=5
-    )
+    if education:
+        draw_section("Education", education)
 
-    st.image(img, use_column_width=True)
+    if achievements:
+        draw_section("Achievements", achievements)
 
-    img_bytes = io.BytesIO()
-    img.save(img_bytes, format="PNG")
+    # Skills in sidebar
+    if skills:
+        c.setFillColor(colors.white)
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(30, height-250, "Skills")
 
-    st.download_button(
-        "⬇ Download Thumbnail",
-        img_bytes.getvalue(),
-        file_name="autobuy_ea_thumbnail.png",
-        mime="image/png"
-    )
+        y_skill = height-270
+        c.setFont("Helvetica", 10)
+        for skill in skills.split(","):
+            c.drawString(30, y_skill, f"- {skill.strip()}")
+            y_skill -= 15
+
+    c.save()
+
+# ---------------- PREVIEW ----------------
+st.subheader("Preview (Theme Applied)")
+st.write("Theme:", theme)
+st.write("Name:", name)
+st.write("Role:", role)
+
+# ---------------- DOWNLOAD ----------------
+if st.button("📥 Generate Resume PDF"):
+    pdf_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    create_resume_pdf(pdf_file.name)
+
+    with open(pdf_file.name, "rb") as f:
+        st.download_button("Download Resume", f, file_name="Professional_Resume.pdf")
